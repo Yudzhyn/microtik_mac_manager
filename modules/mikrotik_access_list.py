@@ -108,7 +108,7 @@ class MikrotikAccessList:
     # DECORATOR
     def __check_connection(func: Callable) -> Callable:
         def __decorator(self):
-            if not self.__connection:
+            if not self.__zapi:
                 logger.warning(f"[-] Connection is not created for '{self.__ip}:{self.__port}'.")
                 raise MikrotikAccessList.ConnectionNotCreated
             return func(self)

@@ -47,4 +47,4 @@ class ZabbixRoutersInventory:
             if not host_interface:
                 continue
             hosts_parsed.append({"name": host["name"], "ip": host_interface["ip"], })
-        return hosts_parsed
+        return {host_group_name: hosts_parsed}
