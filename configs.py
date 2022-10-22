@@ -11,4 +11,3 @@ SQLALCHEMY_DATABASE_URI: str = 'sqlite:///../db/database.db'
 
 # zabbix
 ZABBIX_SERVER_URL: str = "https://netup.ml/zabbix/"
-JSON_LOCATIONS_PATH: str = r"./db/locations_routers.json"

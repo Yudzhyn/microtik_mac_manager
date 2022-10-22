@@ -46,5 +46,5 @@ class ZabbixRoutersInventory:
                 next((host_infc for host_infc in hosts_interfaces if host_infc["hostid"] == host_id), None)
             if not host_interface:
                 continue
-            hosts_parsed.append({"name": host["name"], "ip": host_interface["ip"], })
+            hosts_parsed.append({"name": host["name"], "ip": host_interface["ip"], "id": int(host_interface["hostid"])})
         return {host_group_name: hosts_parsed}
