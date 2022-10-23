@@ -11,9 +11,9 @@ from logging import getLogger
 logger = getLogger(__name__)
 
 
-class ZabbixRoutersInventory:
+class ZabbixRouters:
 
-    # --------------------------- Builder ------------------------------------
+    # --------------------------- Builder -------------------------------------
     def __init__(self, url_server: str):
         # private
         self.__url_server: str = url_server
@@ -23,18 +23,22 @@ class ZabbixRoutersInventory:
         self.__zapi: Optional[ZabbixAPI] = None
         self.__connect_zabbix()
 
+    # --------------------------- Exceptions ----------------------------------
+
+    class ZabbixHostGroupNotFound(Exception):
+        def __init__(self, name: str):
+            logger.info(f"[-] Host group '{name}' not found.")
+
     # --------------------------- Private methods -----------------------------
     def __connect_zabbix(self):
         self.__zapi = ZabbixAPI(self.__url_server)
         self.__zapi.login(self.__login, self.__password)
 
     # --------------------------- Public methods ------------------------------
-    def get(self, host_group_name: str):
-        host_group: List[Dict[str, str]] = self.__zapi.hostgroup.get(
-            filter={"name": host_group_name}
-        )
+    def get_host_group_routers(self, name: str):
+        host_group: List[Dict[str, str]] = self.__zapi.hostgroup.get(filter={"name": name})
         if not host_group:
-            pass
+            raise ZabbixRouters.ZabbixHostGroupNotFound(name)
 
         hosts_describes: List[Dict[str, str]] = self.__zapi.host.get(groupids=host_group[0]["groupid"])
         hosts_interfaces: List[Dict[str, str]] = self.__zapi.hostinterface.get(groupids=host_group[0]["groupid"])
@@ -47,4 +51,10 @@ class ZabbixRoutersInventory:
             if not host_interface:
                 continue
             hosts_parsed.append({"name": host["name"], "ip": host_interface["ip"], "id": int(host_interface["hostid"])})
-        return {host_group_name: hosts_parsed}
+        return hosts_parsed
+
+    def get_host_group_id(self, name: str) -> int:
+        host_group: List[Dict[str, str]] = self.__zapi.hostgroup.get(filter={"name": name})
+        if not host_group:
+            raise ZabbixRouters.ZabbixHostGroupNotFound(name)
+        return int(host_group[0]["groupid"])
