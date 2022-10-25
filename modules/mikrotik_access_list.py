@@ -11,7 +11,7 @@ from enum import Enum, auto as enum_auto
 from routeros_api.exceptions import *
 
 # type hint
-from typing import Optional, Dict, List, Callable
+from typing import Optional, Dict, List
 from routeros_api.resource import RouterOsResource
 from re import Pattern
 
@@ -47,7 +47,7 @@ class MikrotikAccessList:
 
     # - Connection --------------------
 
-    class ConnectionNotCreated(Exception):
+    class ConnectionFailed(Exception):
         pass
 
     # - MAC ---------------------------
@@ -98,55 +98,37 @@ class MikrotikAccessList:
         except RouterOsApiCommunicationError:
             logger.warning(f"[-] Connection failed to '{self.__ip}:{self.__port}'. ERROR: incorrect credentials.")
 
-        raise ConnectionError
+        raise MikrotikAccessList.ConnectionFailed
 
     def __del__(self):
         if self.__connection:
             self.__connection.disconnect()
             logger.debug(f"[+] Connection is closed with '{self.__ip}:{self.__port}'.")
-
-    # DECORATOR
-    def __check_connection(func: Callable) -> Callable:
-        def __decorator(self):
-            if not self.__zapi:
-                logger.warning(f"[-] Connection is not created for '{self.__ip}:{self.__port}'.")
-                raise MikrotikAccessList.ConnectionNotCreated
-            return func(self)
-
-        return __decorator
-
     # --------------------------- Public methods ------------------------------
 
-    @__check_connection
     def get(self) -> List[Dict[str, str]]:
         access_list: List[Dict[str, str]] = self.__access_list.get()
+        if self.__interface == MikrotikAccessList.Interface.CAPSMAN:
+            access_list = access_list[:-2]
         logger.info(f"[+] Got access list from '{self.__ip}:{self.__port}'.")
         return access_list
 
-    @__check_connection
-    def add_mac(self, mac: str, comment: str = "", validate_mac: bool = False) -> None:
+    def add_mac(self, mac: str, comment: str = "") -> None:
 
         if not self.__connection:
-            raise MikrotikAccessList.ConnectionNotCreated
-
-        if validate_mac and MikrotikAccessList.is_mac_valid(mac):
-            logger.warning(f"[+] The MAC '{mac}' is not valid.")
-            raise MikrotikAccessList.MacNotValid
+            raise MikrotikAccessList.ConnectionFailed
 
         self.__access_list.add(mac_address=mac, comment=comment, place_before='0')
         logger.info(f"[+] The MAC '{mac}' is added to '{self.__ip}:{self.__port}'.")
 
-    @__check_connection
-    def remove_mac(self, mac: str) -> None:
-        access_list_table: List[Dict] = self.get()
-        access_list_item: Dict = next((item for item in access_list_table if item.get("mac-address") == mac), None)
-
-        if not access_list_item:
-            logger.warning(f"[+] The MAC '{mac}' doesn't exist in '{self.__ip}:{self.__port}'.")
+    def remove_mac(self, id_mac: str) -> None:
+        mac_address: List[Dict[str, str]] = self.__access_list.get(id=id_mac)
+        if not mac_address:
+            logger.info(f"[-] The MAC with id '{id_mac}' doesn't exist in '{self.__ip}:{self.__port}'.")
             raise MikrotikAccessList.MacNotExists
 
-        self.__access_list.remove(id=access_list_item["id"])
-        logger.info(f"[+] The MAC '{mac}' is removed from '{self.__ip}:{self.__port}'.")
+        self.__access_list.remove(id=id_mac)
+        logger.info(f"[+] The MAC '{mac_address[0]}' is removed from '{self.__ip}:{self.__port}'.")
 
     @staticmethod
     def is_mac_valid(mac: str) -> bool:

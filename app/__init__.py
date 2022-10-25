@@ -22,6 +22,7 @@ CORS(app, supports_credentials=True)
 
 # - Blueprints ----------------------------------------------------------------
 app.register_blueprint(host_group_bp)
+app.register_blueprint(access_list_bp)
 
 # - DataBase ------------------------------------------------------------------
 app.config['SQLALCHEMY_DATABASE_URI'] = SQLALCHEMY_DATABASE_URI
